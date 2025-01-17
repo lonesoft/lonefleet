@@ -1,0 +1,11 @@
+#! /bin/sh
+
+# https://www.skreutz.com/posts/unattended-installation-of-alpine-linux/
+set -eux
+
+# Run only once.
+rm -f /etc/local.d/auto-setup-alpine.start
+rm -f /etc/runlevels/default/local
+
+/etc/auto-setup-alpine/auto-setup-alpine > /etc/auto-setup-alpine/auto-setup-alpine.log
+

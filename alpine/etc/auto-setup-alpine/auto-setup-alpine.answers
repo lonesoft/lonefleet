@@ -1,0 +1,46 @@
+KEYMAPOPTS="gb gb"
+
+# Set hostname to alpine-root
+HOSTNAMEOPTS="-n $INSTANCE_HOSTNAME"
+
+# Set device manager to mdev
+DEVDOPTS=mdev
+
+# Contents of /etc/network/interfaces
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+  hostaname $INSTANCE_HOSTNAME
+"
+
+# Set timezone to UTC
+TIMEZONEOPTS="-z UTC"
+
+# set http/ftp proxy
+PROXYOPTS=none
+
+# Add cdn mirror
+APKREPOSOPTS="-1"
+
+# Install Openssh
+SSHDOPTS="-c openssh"
+ROOTSSHKEY="$INSTANCE_SSH"
+
+# Use openntpd
+NTPOPTS="-c openntpd"
+
+# Use /dev/sda as a sys disk
+DISKOPTS="-m sys /dev/sda"
+
+# Setup storage with label APKOVL for config storage
+#LBUOPTS="LABEL=APKOVL"
+LBUOPTS=none
+
+# Create admin user
+#USEROPTS="-a -u lorenzo"
+#USERSSHKEY="$INSTANCE_SSH"
+
+#APKCACHEOPTS="/media/LABEL=APKOVL/cache"
+APKCACHEOPTS=none

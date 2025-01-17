@@ -1,0 +1,17 @@
+#! /bin/sh
+
+set -eux
+
+# Run only once.
+rm -f /etc/local.d/auto-setup-alpine.start
+rm -f /etc/runlevels/default/local
+
+# reboot after setup
+trap 'reboot' EXIT INT
+
+# Close standard input.
+exec 0<&-
+
+echo 'root:$INSTANCE_ROOT_PASSWORD' | chpasswd
+ERASE_DISKS="/dev/sda" \
+  setup-alpine -ef /etc/auto-setup-alpine/auto-setup-alpine.answers < /etc/auto-setup-alpine/auto-setup-alpine.keyin

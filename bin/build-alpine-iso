@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+# https://www.skreutz.com/posts/unattended-installation-of-alpine-linux/
+
+set -euo pipefail
+
+function terminate(){
+  rm -fr $tmp
+}
+
+function download_alpine(){
+  local cdn="https://dl-cdn.alpinelinux.org/alpine/v$alpine_ver/releases/$alpine_arch/$alpine_iso"
+  [[ -f $alpine_iso ]] && return
+
+  curl --location --remote-name-all $cdn{,.sha256,.asc}
+  sha256sum -c alpine-*.iso.sha256
+
+  curl --location https://alpinelinux.org/keys/ncopa.asc |
+      gpg --import -
+  gpg --verify alpine*.iso.asc
+}
+
+function create_overlay(){
+  local src dst
+
+  [[ -d ovl ]] && rm -fr ovl
+  shopt -s globstar
+  for src in $alpine/**;do
+    dst=${src/"$alpine"/ovl}
+    if [[ -d $src ]]; then
+      mkdir --parents $dst
+    else
+      envsubst < $src > $dst
+    fi
+  done
+
+  chmod 755 ovl/etc/local.d/auto-setup-alpine.start
+  chmod 755 ovl/etc/auto-setup-alpine/auto-setup-alpine
+
+  touch ovl/etc/.default_boot_services
+  mkdir --parents ovl/etc/runlevels/default
+  ln -sf /etc/init.d/local ovl/etc/runlevels/default
+}
+
+function build_iso(){
+  local overlay_tar=localhost.apkovl.tar.gz
+
+  [[ -f $overlay_tar ]] && rm $overlay_tar
+  [[ -f $lone_iso ]] && rm $lone_iso
+
+  tar --owner=0 --group=0 -czf $overlay_tar -C ovl .
+  xorriso \
+    -indev $tmp/$alpine_iso \
+    -outdev $lone_iso \
+    -map $overlay_tar /$overlay_tar \
+    -boot_image any replay
+}
+
+function initialize_main(){
+  local alpine_ver=$INSTANCE_ALPINE_VER
+  local alpine_patch=$INSTANCE_ALPINE_PATCH
+  local alpine_arch=$INSTANCE_ALPINE_ARCH
+
+  local alpine="$PROJECT_PATH/alpine"
+  local path=$PROJECT_PATH/local/iso
+  local tmp=$path/tmp
+#  local overlay=$tmp/ovl
+  local alpine_iso=alpine-virt-$alpine_ver.$alpine_patch-$alpine_arch.iso
+  local lone_iso=lone-$alpine_iso
+  . dotenv dev
+  main
+}
+
+function main(){
+  mkdir --parents $tmp
+  cd $tmp
+
+  download_alpine
+  create_overlay
+  build_iso
+#  terminate
+
+  #sudo mount -t drvfs '\\lonehyper-v2\iso' ~/Projects/lonesoft/lonefleet/local/iso/hyper-v/
+  cp $lone_iso $path/hyper-v/Linux/Alpine
+}
+
+initialize_main "$@"
+
