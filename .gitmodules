@@ -1,0 +1,3 @@
+[submodule "beelib"]
+	path = beelib
+	url = https://github.com/lonesoft/beelib
