@@ -46,7 +46,7 @@ function build_iso(){
   local overlay_tar=localhost.apkovl.tar.gz
 
   [[ -f $overlay_tar ]] && rm $overlay_tar
-  [[ -f $lone_iso ]] && rm $lone_iso
+  [[ -f $path/$lone_iso ]] && rm $path/$lone_iso
 
   tar --owner=0 --group=0 -czf $overlay_tar -C ovl .
   xorriso \
@@ -57,7 +57,9 @@ function build_iso(){
 }
 
 function initialize_main(){
-  . dotenv dev
+  [[ ! -z $PROJECT_PATH ]] && cd $PROJECT_PATH
+  . dotenv ""
+  echo "there"
   local alpine_ver=$INSTANCE_ALPINE_VER
   local alpine_patch=$INSTANCE_ALPINE_PATCH
   local alpine_arch=$INSTANCE_ALPINE_ARCH
@@ -71,7 +73,14 @@ function initialize_main(){
   main "$@"
 }
 
+function copy_to_server(){
+  local hyperv=$path/hyper-v
+  [[ -d $hyperv ]] || sudo mount -t drvfs '\\lonehyper-v2\iso' $path/hyper-v
+  cp $path/$lone_iso $hyperv/Linux/Alpine
+}
+
 function main(){
+  [[ -d $tmp ]] && rm -fr $tmp
   mkdir --parents $tmp
   cd $tmp
 
@@ -80,8 +89,7 @@ function main(){
   build_iso
   terminate
 
-  #sudo mount -t drvfs '\\lonehyper-v2\iso' ~/Projects/lonesoft/lonefleet/local/iso/hyper-v/
-  cp $path/$lone_iso $path/hyper-v/Linux/Alpine
+  copy_to_server
 }
 
 initialize_main "$@"
