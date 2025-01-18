@@ -17,7 +17,7 @@ function main(){
 
   remove_from_known_hosts
   app_to_known_hosts
-  deploy deploy alpine/alpine-post-installation || :
+  deploy deploy fleet/alpine/alpine-post-installation || :
 }
 
 main "$@"

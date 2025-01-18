@@ -64,7 +64,7 @@ function initialize_main(){
   local alpine_patch=$INSTANCE_ALPINE_PATCH
   local alpine_arch=$INSTANCE_ALPINE_ARCH
 
-  local build="$PROJECT_PATH/alpine/build"
+  local build="$PROJECT_PATH/fleet/alpine/build"
   local path=$PROJECT_PATH/local/iso
   local tmp=$path/tmp
   local alpine_iso=alpine-virt-$alpine_ver.$alpine_patch-$alpine_arch.iso
