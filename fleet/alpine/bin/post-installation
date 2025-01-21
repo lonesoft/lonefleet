@@ -1,0 +1,10 @@
+set -euo pipefail
+
+apk update
+apk upgrade
+apk add sudo bash
+echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheel
+setup-user -u -g wheel -k "$INSTANCE_SSH" $INSTANCE_USER
+sed -iEe "s,/home/$INSTANCE_USER:/bin/sh,/home/$INSTANCE_USER:/bin/bash," /etc/passwd
+sed -iEe "s,^#*\s*PermitRootLogin.*,PermitRootLogin no," /etc/ssh/sshd_config
+service sshd restart

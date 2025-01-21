@@ -3,11 +3,11 @@
 set -euo pipefail
 
 function main(){
-  local volume_name=${1:-sdb}
+  local volume_name=${1:-/dev/sdb}
   local volume_mount=${2:-/mnt/data}
-  VOLUME_NAME=$volume_name \
-    VOLUME_MOUNT=$volume_mount \
-    deploy deploy fleet/alpine/alpine-add-disk
+  deploy env VOLUME_NAME=$volume_name \
+          +env VOLUME_MOUNT=$volume_mount \
+          +file fleet/alpine/bin/add-disk
 }
 
 main "$@"
