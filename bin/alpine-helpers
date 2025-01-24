@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+function reset_known_hosts(){
+  ssh-keygen -f ~/.ssh/known_hosts -R $INSTANCE_HOSTNAME
+  ssh-keygen -F $INSTANCE_HOSTNAME > /dev/null && return
+  ssh-keyscan -H -p 22 -t ecdsa $INSTANCE_HOSTNAME >> ~/.ssh/known_hosts
+}
+
+function test_server_online(){
+  ping -c 1 alpine-root.lone &> /dev/null
+  return $?
+}
+
+function wait_server_status(){
+  local status=${1:-online}
+  echo -n "Waiting for server $status "
+  if [[ $status == online ]]; then
+    while ! test_server_online; do
+      sleep 1
+      echo -n "."
+    done
+  elif [[ $status == offline ]]; then
+    while test_server_online; do
+      sleep 1
+      echo -n "."
+    done
+  elif [[ $status == reboot ]]; then
+    while test_server_online; do
+      sleep 1
+      echo -n "."
+    done
+    while ! test_server_online; do
+      sleep 1
+      echo -n "."
+    done
+  fi
+  echo " done"
+}
+
+

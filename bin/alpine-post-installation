@@ -2,11 +2,7 @@
 
 set -euo pipefail
 
-function reset_known_hosts(){
-  ssh-keygen -f ~/.ssh/known_hosts -R $INSTANCE_HOSTNAME
-  ssh-keygen -F $INSTANCE_HOSTNAME > /dev/null && return
-  ssh-keyscan -H -p 22 -t ecdsa $INSTANCE_HOSTNAME >> ~/.ssh/known_hosts
-}
+. $(dirname "$0")/alpine-helpers
 
 function post_installation(){
   deploy root-file fleet/alpine/bin/post-installation
