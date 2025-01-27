@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. $(dirname "$0")/alpine-helpers
+
+function main(){
+  [[ ! -z $PROJECT_PATH ]] && cd $PROJECT_PATH
+  . dotenv ""
+  alpine-post-installation
+  wait_server_status reboot
+  deploy file fleet/alpine/bin/install-docker
+  deploy deploy fleet/mysql/deploy
+}
+
+main "$@"

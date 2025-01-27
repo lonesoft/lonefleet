@@ -1,0 +1,23 @@
+services:
+  db:
+    container_name: mariadb
+    image: mariadb:11.6
+    restart: always
+    volumes:
+      - ./etc/mysql/conf.d:/etc/mysql/conf.d:ro
+      - /mnt/data/mysql:/var/lib/mysql:Z
+    ports:
+      - 3306:3306
+    environment:
+      MARIADB_ROOT_PASSWORD: $INSTANCE_ROOT_PASSWORD
+      MARIADB_USER: lorenzo
+      MARIADB_PASSWORD: $INSTANCE_ROOT_PASSWORD
+
+  admin:
+    container_name: phpmyadmin
+    image: phpmyadmin:latest
+    restart: always
+    volumes:
+      - ./etc/phpmyadmin/conf.d:/etc/phpmyadmin/conf.d:ro
+    ports:
+      - 80:80

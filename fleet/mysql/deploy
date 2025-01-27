@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+COPY app .
+WORKDIR ./app
+RUN bin/start-app
