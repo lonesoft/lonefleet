@@ -4,10 +4,6 @@
 
 set -euo pipefail
 
-function terminate(){
-  rm -fr $tmp
-}
-
 function download_alpine(){
   local cdn="https://dl-cdn.alpinelinux.org/alpine/v$alpine_ver/releases/$alpine_arch/$alpine_iso"
   [[ -f $alpine_iso ]] && return
@@ -56,16 +52,15 @@ function build_iso(){
     -boot_image any replay
 }
 
-function initialize_main(){
+function initialize(){
   [[ ! -z $PROJECT_PATH ]] && cd $PROJECT_PATH
-  . dotenv ""
-  echo "there"
+  . dotenv alpine
   local alpine_ver=$INSTANCE_ALPINE_VER
   local alpine_patch=$INSTANCE_ALPINE_PATCH
   local alpine_arch=$INSTANCE_ALPINE_ARCH
 
   local build="$PROJECT_PATH/fleet/alpine/build"
-  local path=$PROJECT_PATH/local/iso
+  local path=$PROJECT_PATH/local/alpine-iso
   local tmp=$path/tmp
   local alpine_iso=alpine-virt-$alpine_ver.$alpine_patch-$alpine_arch.iso
   local lone_iso=lone-$alpine_iso
@@ -73,10 +68,15 @@ function initialize_main(){
   main "$@"
 }
 
+function terminate(){
+  rm -fr $tmp
+}
+
 function copy_to_server(){
   local hyperv=$path/hyper-v
-  [[ -d $hyperv ]] || sudo mount -t drvfs '\\lonehyper-v2\iso' $path/hyper-v
+  mountpoint $hyperv 2>&1 > /dev/null || sudo mount -t drvfs '\\lonehyper-v2\iso' $hyperv
   cp $path/$lone_iso $hyperv/Linux/Alpine
+  ls -la $hyperv/Linux/Alpine
 }
 
 function main(){
@@ -92,5 +92,5 @@ function main(){
   copy_to_server
 }
 
-initialize_main "$@"
+initialize "$@"
 
