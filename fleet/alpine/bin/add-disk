@@ -4,6 +4,8 @@ export VOLUME_NAME=${VOLUME_NAME:-"/dev/sdb"}
 export VOLUME_MOUNT=${VOLUME_MOUNT:-"/mnt/data"}
 export VOLUME_PART=${VOLUME_PART:-"${VOLUME_NAME}1"}
 
+sudo [[ -d $VOLUME_MOUNT ]] && exit
+
 sudo apk add parted xfsprogs lsblk
 sudo parted $VOLUME_NAME mklabel gpt
 sudo parted $VOLUME_NAME mkpart primary 0% 100%

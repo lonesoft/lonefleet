@@ -1,0 +1,16 @@
+set -euo pipefail
+
+echo $INSTANCE_HOSTNAME > /etc/hostname
+
+cat > /etc/hosts << EOF
+127.0.0.1       $INSTANCE_HOSTNAME localhost
+::1             localhost
+EOF
+cat > /etc/network/interfaces << EOF
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+  hostaname $INSTANCE_HOSTNAME
+EOF

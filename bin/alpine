@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. $(dirname "$0")/helpers
+. parse_parameters
+
+function can-connect-root(){
+  test_server_online || return 1
+  reset_known_hosts
+  can-connect root
+}
+
+function _initialize(){
+  local ACTUAL_HOSTNAME=$INSTANCE_HOSTNAME
+  export INSTANCE_HOSTNAME=$INSTANCE_HOSTNAME_ALPINE
+  export INSTANCE_ADDRESS=$INSTANCE_HOSTNAME_ALPINE
+  "$@"
+}
+
+function _post-installation(){
+  can-connect-root || return 0
+  deploy root-file fleet/alpine/bin/post-installation
+}
+
+function _add-volumes(){
+  deploy env VOLUME_NAME=/dev/sdb \
+          +env VOLUME_MOUNT=/mnt/data \
+          +file fleet/alpine/bin/add-disk
+  deploy env VOLUME_NAME=/dev/sdc \
+          +env VOLUME_MOUNT=/mnt/mass \
+          +file fleet/alpine/bin/add-disk
+}
+
+function _update-hostname(){
+  can-connect-root || return 0
+  deploy root-file fleet/alpine/bin/update-hostname
+  deploy root-run reboot
+  wait_server_status offline $INSTANCE_HOSTNAME_ALPINE
+  wait_server_status online $ACTUAL_HOSTNAME
+  reset_known_hosts
+}
+
+function main(){
+  [[ ${PROJECT_PATH:-undefined} == "undefined" ]] && export PROJECT_PATH=$(dirname $(dirname "$0"))
+  cd $PROJECT_PATH
+
+  local definitions=()
+  definitions+=("bash:$(basename $BASH_SOURCE)")
+  definitions+=("initialize:initialize")
+
+  definitions+=("command:post-installation:performs post installation")
+  definitions+=("command:add-volumes:add data and mass volumes")
+  definitions+=("command:update-hostname:update hostname")
+
+  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
+}
+
+main "$@"
