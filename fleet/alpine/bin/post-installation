@@ -10,6 +10,14 @@ setup-user -u -g wheel -k "$INSTANCE_SSH" $INSTANCE_USER
 sed -iEe "s,/home/$INSTANCE_USER:/bin/sh,/home/$INSTANCE_USER:/bin/bash," /etc/passwd
 sed -iEe "s,^#*\s*PermitRootLogin.*,PermitRootLogin no," /etc/ssh/sshd_config
 
+cat > /home/$INSTANCE_USER/.profile << 'EOF'
+if [[ $(type -t __git_ps1) == function ]]; then
+  export PS1='\n\e[92m\u@\h \e[96m\t \e[91m$HOSTNAME \e[93m\w\e[95m$(__git_ps1 " (%s)")\e[0m\n$ '
+else
+  export PS1='\n\e[92m\u@\h \e[96m\t \e[91m$HOSTNAME \e[93m\w\e[0m\n$ '
+fi
+EOF
+
 echo $INSTANCE_HOSTNAME > /etc/hostname
 
 cat > /etc/hosts << EOF
