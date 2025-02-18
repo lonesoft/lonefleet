@@ -9,3 +9,20 @@ echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheel
 setup-user -u -g wheel -k "$INSTANCE_SSH" $INSTANCE_USER
 sed -iEe "s,/home/$INSTANCE_USER:/bin/sh,/home/$INSTANCE_USER:/bin/bash," /etc/passwd
 sed -iEe "s,^#*\s*PermitRootLogin.*,PermitRootLogin no," /etc/ssh/sshd_config
+
+echo $INSTANCE_HOSTNAME > /etc/hostname
+
+cat > /etc/hosts << EOF
+127.0.0.1       $INSTANCE_HOSTNAME localhost
+::1             localhost
+EOF
+cat > /etc/network/interfaces << EOF
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+  hostaname $INSTANCE_HOSTNAME
+EOF
+
+reboot
