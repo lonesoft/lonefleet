@@ -4,11 +4,18 @@ id -u $INSTANCE_USER &> /dev/null && exit
 
 apk update
 apk upgrade
-apk add sudo bash rsync
+apk add sudo bash rsync nano
 echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheel
 setup-user -u -g wheel -k "$INSTANCE_SSH" $INSTANCE_USER
 sed -iEe "s,/home/$INSTANCE_USER:/bin/sh,/home/$INSTANCE_USER:/bin/bash," /etc/passwd
+# Prevent user logging in from terminal
+sed -iEe "s,$INSTANCE_USER::,$INSTANCE_USER:!#:," /etc/shadow
+
+# Prevent root from logging in remotely
 sed -iEe "s,^#*\s*PermitRootLogin.*,PermitRootLogin no," /etc/ssh/sshd_config
+
+# Prevent remote logging using password authentication
+sed -iEe "s,^#*\s*PasswordAuthentication.*,PasswordAuthentication no," /etc/ssh/sshd_config
 
 cat > /home/$INSTANCE_USER/.profile << 'EOF'
 if [[ $(type -t __git_ps1) == function ]]; then
