@@ -29,6 +29,10 @@ function _add-volumes(){
           +file fleet/alpine/bin/add-disk
 }
 
+function _install-docker(){
+  deploy file fleet/alpine/bin/install-docker
+}
+
 function main(){
   [[ ${PROJECT_PATH:-undefined} == "undefined" ]] && export PROJECT_PATH=$(dirname $(dirname "$0"))
   cd $PROJECT_PATH
@@ -38,6 +42,7 @@ function main(){
 
   definitions+=("command:post-installation:performs post installation")
   definitions+=("command:add-volumes:add data and mass volumes")
+  definitions+=("command:install-docker:install docker")
 
   parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
 }

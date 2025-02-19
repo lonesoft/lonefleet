@@ -1,5 +1,7 @@
 set -euo pipefail
 
+# Exit if already installed
+which docker &> /dev/null && exit
 
 # Installation
 sudo apk update
