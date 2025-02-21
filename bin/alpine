@@ -32,6 +32,9 @@ function _add-volumes(){
 function _install-docker(){
   deploy file fleet/alpine/bin/install-docker
 }
+function _add-shared-config() {
+  deploy file fleet/alpine/bin/add-shared-config
+}
 
 function main(){
   [[ ${PROJECT_PATH:-undefined} == "undefined" ]] && export PROJECT_PATH=$(dirname $(dirname "$0"))
@@ -42,6 +45,7 @@ function main(){
 
   definitions+=("command:post-installation:performs post installation")
   definitions+=("command:add-volumes:add data and mass volumes")
+  definitions+=("command:add-shared-config:install docker")
   definitions+=("command:install-docker:install docker")
 
   parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug

@@ -1,0 +1,13 @@
+set -euo pipefail
+
+[[ -d /home/$INSTANCE_USER/config ]] && exit 0
+mkdir /home/$INSTANCE_USER/config
+
+#echo username=$ROUTER_SHARE_USERNAME | sudo > /dev/null tee /etc/samba-share
+#echo password=$ROUTER_SHARE_PASSWORD | sudo > /dev/null tee -a /etc/samba-share
+#sudo chmod 600 /etc/samba-share
+#sudo echo "//$ROUTER_IP/config /home/$INSTANCE_USER/config cifs credentials=/etc/samba-share 0 0"  | sudo tee -a /etc/fstab
+
+MOUNT_OPTIONS=ro,gid=1000,uid=1000,username=$SHARED_USERNAME,password=$SHARED_PASSWORD
+sudo echo "//$SHARED_IP/config /home/$INSTANCE_USER/config cifs $MOUNT_OPTIONS 0 0" | sudo > /dev/null tee -a /etc/fstab
+sudo mount -a
