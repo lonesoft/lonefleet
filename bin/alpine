@@ -12,6 +12,7 @@ function can-connect-root(){
 }
 
 function _post-installation(){
+  trace $FUNCNAME
   export INSTANCE_ADDRESS=$INSTANCE_HOSTNAME_ALPINE
   can-connect-root || return 0
   deploy root-file fleet/alpine/bin/post-installation
@@ -21,6 +22,7 @@ function _post-installation(){
 }
 
 function _add-volumes(){
+  trace $FUNCNAME
   deploy env VOLUME_NAME=/dev/sdb \
           +env VOLUME_MOUNT=/mnt/data \
           +file fleet/alpine/bin/add-disk
@@ -30,10 +32,44 @@ function _add-volumes(){
 }
 
 function _install-docker(){
+  trace $FUNCNAME
   deploy file fleet/alpine/bin/install-docker
 }
+
 function _add-shared-config() {
+  trace $FUNCNAME
   deploy file fleet/alpine/bin/add-shared-config
+}
+
+function _deploy() {
+  trace app $FUNCNAME $1
+  if [[ $# -eq 0 ]]; then echo "Error: missing app path"; exit 1; fi
+  local path=$1
+  if [[ ! -d $path ]]; then echo "Error: path $path not found"; exit 1; fi
+  deploy copy $path .
+  deploy run "[[ -f app/bin/app-install ]] && app/bin/app-install"
+}
+function _stat() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-stat
+}
+function _start() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-start
+}
+function _stop() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-stop
+}
+
+function _app() {
+  local definitions=()
+  definitions+=("bash:$(basename $BASH_SOURCE) app")
+  definitions+=("command:deploy")
+  definitions+=("command:stat")
+  definitions+=("command:start")
+  definitions+=("command:stop")
+  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
 }
 
 function main(){
@@ -47,6 +83,8 @@ function main(){
   definitions+=("command:add-volumes:add data and mass volumes")
   definitions+=("command:add-shared-config:install docker")
   definitions+=("command:install-docker:install docker")
+  definitions+=("command:app:manage application")
+#  definitions+=("command:deploy-app:deploy application")
 
   parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
 }
