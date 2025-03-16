@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-$(dirname "$0")/stop-app
-
-sudo rm -fr /mnt/data/mysql
-docker compose up --detach

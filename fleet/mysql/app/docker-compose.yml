@@ -1,10 +1,11 @@
 services:
+
   db:
     container_name: mariadb
-    image: mariadb:11.6
+    image: mariadb:11.7
     restart: always
     volumes:
-      - ./etc/mysql/conf.d:/etc/mysql/conf.d:ro
+      - ./mysql/etc/conf.d:/etc/mysql/conf.d:ro
       - /mnt/data/mysql:/var/lib/mysql:Z
     ports:
       - 3306:3306
@@ -15,9 +16,22 @@ services:
 
   admin:
     container_name: phpmyadmin
-    image: phpmyadmin:latest
+    build:
+      context: ./phpmyadmin
     restart: always
     volumes:
-      - ./etc/phpmyadmin/conf.d:/etc/phpmyadmin/conf.d:ro
+      - config_mysql:/etc/phpmyadmin/config_mysql:ro
+      - ./phpmyadmin/etc/conf.d:/etc/phpmyadmin/conf.d:ro
+      - /mnt/mass/phpmyadmin:/var/www/mass:Z
     ports:
       - 80:80
+    depends_on:
+      - db
+
+volumes:
+  config_mysql:
+    name: config_mysql
+    driver_opts:
+      type: cifs
+      o: ro,gid=1000,uid=1000,username=$SHARED_USERNAME,password=$SHARED_PASSWORD
+      device: //$SHARED_IP/config/mysql.lone

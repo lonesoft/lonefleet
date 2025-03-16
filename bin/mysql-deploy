@@ -2,15 +2,15 @@
 
 set -euo pipefail
 
-. $(dirname "$0")/alpine-helpers
-
 function main(){
   [[ ! -z $PROJECT_PATH ]] && cd $PROJECT_PATH
-  . dotenv ""
-  alpine-post-installation
-  wait_server_status reboot
-  deploy file fleet/alpine/bin/install-docker
-  deploy deploy fleet/mysql/deploy
+  . dotenv mysql
+  alpine post-installation
+  alpine add-volumes
+  alpine add-shared-config
+  alpine install-docker
+  alpine app deploy fleet/mysql/app
+  alpine app start
 }
 
 main "$@"

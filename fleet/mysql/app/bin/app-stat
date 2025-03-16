@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd ~/app
+
+echo
+docker images --all
+echo
+docker ps --all
+echo

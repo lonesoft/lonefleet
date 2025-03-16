@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. $(dirname "$0")/helpers
+
+$(dirname "$0")/app-stop
+
+cd ~/app
+
+#docker compose build
+docker compose up --detach
+#docker system prune --all --force
+
+create_symlink /mnt/data/mysql ~/app/mysql/data
+create_symlink /mnt/mass/phpmyadmin ~/app/phpmyadmin/data
+
+bin/app-stat
