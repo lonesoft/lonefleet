@@ -24,6 +24,7 @@ else
   export PS1='\n\e[92m\u@\h \e[96m\t \e[91m$HOSTNAME \e[93m\w\e[0m\n$ '
 fi
 EOF
+echo 'export PATH=~/app/bin:$PATH' >> /home/$INSTANCE_USER/.profile
 
 echo $INSTANCE_HOSTNAME > /etc/hostname
 
