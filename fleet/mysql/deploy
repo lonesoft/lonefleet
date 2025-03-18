@@ -4,5 +4,4 @@ set -euo pipefail
 
 COPY app .
 WORKDIR ./app
-RUN sudo mkdir -p /mnt/mass/docker/cache
-#RUN bin/start-app
+
