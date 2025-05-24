@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+function main(){
+  [[ ! -z $PROJECT_PATH ]] && cd $PROJECT_PATH
+  . dotenv mysql
+  alpine post-installation
+  alpine add-volumes
+  alpine add-shared-config
+  alpine install-docker
+  alpine app deploy fleet/mysql/app
+  alpine app start
+}
+
+main "$@"

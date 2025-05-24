@@ -1,0 +1,15 @@
+set -euo pipefail
+
+export VOLUME_NAME=${VOLUME_NAME:-"/dev/sdb"}
+export VOLUME_MOUNT=${VOLUME_MOUNT:-"/mnt/data"}
+export VOLUME_PART=${VOLUME_PART:-"${VOLUME_NAME}1"}
+
+sudo [[ -d $VOLUME_MOUNT ]] && exit
+
+sudo apk add parted xfsprogs lsblk
+sudo parted $VOLUME_NAME mklabel gpt
+sudo parted $VOLUME_NAME mkpart primary 0% 100%
+sudo mkfs.xfs $VOLUME_PART
+sudo mkdir $VOLUME_MOUNT
+sudo mount -t xfs $VOLUME_PART $VOLUME_MOUNT
+echo UUID=$(sudo lsblk -no UUID $VOLUME_PART) $VOLUME_MOUNT xfs  defaults,nofail  0  2 | sudo tee -a /etc/fstab

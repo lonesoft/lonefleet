@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. $(dirname "$0")/helpers
+. parse_parameters
+
+function can-connect-root(){
+  test_server_online $INSTANCE_HOSTNAME_ALPINE || return 1
+  reset_known_hosts $INSTANCE_HOSTNAME_ALPINE
+  can-connect root
+}
+
+function _post-installation(){
+  trace $FUNCNAME
+  export INSTANCE_ADDRESS=$INSTANCE_HOSTNAME_ALPINE
+  can-connect-root || return 0
+  deploy root-file fleet/alpine/bin/post-installation
+  wait_server_status offline $INSTANCE_HOSTNAME_ALPINE
+  wait_server_status online $INSTANCE_HOSTNAME
+  reset_known_hosts $INSTANCE_HOSTNAME
+}
+
+function _add-volumes(){
+  trace $FUNCNAME
+  deploy env VOLUME_NAME=/dev/sdb \
+          +env VOLUME_MOUNT=/mnt/data \
+          +file fleet/alpine/bin/add-disk
+  deploy env VOLUME_NAME=/dev/sdc \
+          +env VOLUME_MOUNT=/mnt/mass \
+          +file fleet/alpine/bin/add-disk
+}
+
+function _install-docker(){
+  trace $FUNCNAME
+  deploy file fleet/alpine/bin/install-docker
+}
+
+function _add-shared-config() {
+  trace $FUNCNAME
+  deploy file fleet/alpine/bin/add-shared-config
+}
+
+function _deploy() {
+  trace app $FUNCNAME $1
+  if [[ $# -eq 0 ]]; then echo "Error: missing app path"; exit 1; fi
+  local path=$1
+  if [[ ! -d $path ]]; then echo "Error: path $path not found"; exit 1; fi
+  deploy copy $path .
+  deploy run "[[ -f app/bin/app-install ]] && app/bin/app-install"
+}
+function _stat() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-stat
+}
+function _start() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-start
+}
+function _stop() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-stop
+}
+
+function _app() {
+  local definitions=()
+  definitions+=("bash:$(basename $BASH_SOURCE) app")
+  definitions+=("command:deploy")
+  definitions+=("command:stat")
+  definitions+=("command:start")
+  definitions+=("command:stop")
+  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
+}
+
+function main(){
+  [[ ${PROJECT_PATH:-undefined} == "undefined" ]] && export PROJECT_PATH=$(dirname $(dirname "$0"))
+  cd $PROJECT_PATH
+
+  local definitions=()
+  definitions+=("bash:$(basename $BASH_SOURCE)")
+
+  definitions+=("command:post-installation:performs post installation")
+  definitions+=("command:add-volumes:add data and mass volumes")
+  definitions+=("command:add-shared-config:install docker")
+  definitions+=("command:install-docker:install docker")
+  definitions+=("command:app:manage application")
+#  definitions+=("command:deploy-app:deploy application")
+
+  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
+}
+
+main "$@"

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. $(dirname "$0")/helpers
+
+sudo mkdir -p /mnt/mass/phpmyadmin
+sudo chmod 777 /mnt/mass/phpmyadmin
+
+sudo mkdir -p /mnt/mass/mysql
+sudo chmod 777 /mnt/mass/mysql

@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+function reset_known_hosts(){
+  local hostname=${1:-$INSTANCE_HOSTNAME}
+  ssh-keygen -f ~/.ssh/known_hosts -F $hostname &> /dev/null && \
+    ssh-keygen -f ~/.ssh/known_hosts -R $hostname &> /dev/null
+  ssh-keyscan -H -p 22 -t ecdsa $hostname 2> /dev/null  >> ~/.ssh/known_hosts
+}
+
+function test_server_online(){
+  local hostname=${1:-$INSTANCE_HOSTNAME}
+  nc -z $hostname 22 &> /dev/null
+  return $?
+}
+
+function wait_server_status(){
+  local status=${1:-online}
+  local hostname=${2:-$INSTANCE_HOSTNAME}
+  echo -n "Waiting for server $hostname $status "
+  if [[ $status == online ]]; then
+    while ! test_server_online $hostname; do
+      sleep 1
+      echo -n "."
+    done
+  elif [[ $status == offline ]]; then
+    while test_server_online $hostname; do
+      sleep 1
+      echo -n "."
+    done
+  elif [[ $status == reboot ]]; then
+    while test_server_online $hostname; do
+      sleep 1
+      echo -n "."
+    done
+    while ! test_server_online $hostname; do
+      sleep 1
+      echo -n "."
+    done
+  fi
+  echo " done"
+  return 0
+}
+
+function ssh-bin(){
+  local bin=()
+  [[ $user == root ]] && [[ -n $INSTANCE_ROOT_PASSWORD ]] && bin+=("sshpass -p $INSTANCE_ROOT_PASSWORD")
+  bin+=("ssh -C")
+  [[ -n $INSTANCE_ROOT_PASSWORD ]] && bin+=("-i $INSTANCE_KEY_PAIR")
+  bin+=("$user@$INSTANCE_ADDRESS")
+  echo ${bin[@]}
+}
+
+function can-connect(){
+  local user=${1:-$INSTANCE_USER}
+  local bin=$(ssh-bin)
+  $bin exit
+}
+
+function trace(){
+  local param
+  local params=()
+  while [ $# -gt 0 ]; do
+    param=$1
+    shift
+    if [[ "${param:0:1}" == "_" ]]; then
+      params+=(${param:1})
+    else
+      params+=($param)
+    fi
+  done
+  params=${params[@]}
+  params="$params                                                                                "
+  params=${params:0:80}
+  echo
+  echo "************************************************************************************"
+  echo "* $params *"
+  echo "************************************************************************************"
+}

@@ -1,0 +1,27 @@
+set -euo pipefail
+
+# Exit if already installed
+which docker &> /dev/null && exit
+
+# Installation
+sudo apk update
+sudo apk add docker docker-cli-compose
+
+# Docker as root
+sudo rc-update add docker default
+sudo addgroup ${USER} docker
+
+# Isolate containers with a user namespace
+sudo adduser -SDHs /sbin/nologin dockremap
+sudo addgroup -S dockremap
+echo dockremap:$(sudo cat /etc/passwd|grep dockremap|cut -d: -f3):65536 | sudo tee -a /etc/subuid
+echo dockremap:$(sudo cat /etc/passwd|grep dockremap|cut -d: -f4):65536 | sudo tee -a /etc/subgid
+sudo mkdir -p /etc/docker
+echo | sudo tee /etc/docker/daemon.json << EOF
+{
+  "userns-remap": "dockremap"
+}
+EOF
+
+# Start docker as a service
+sudo service docker start

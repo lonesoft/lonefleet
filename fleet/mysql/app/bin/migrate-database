@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+function copy(){
+  local source="$1"
+  local target="$2"
+#    --dry-run \
+#    --rsync-path="sudo /usr/bin/rsync" \
+  sudo rsync \
+    --archive \
+    --compress \
+    --itemize-changes \
+    --checksum \
+    $source \
+    $target
+}
+
+function params(){
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      mass|data|list)
+        action=$1
+        ;;
+      *)
+	      sources+=("$1")
+	      ;;
+    esac
+    shift
+  done
+  if [ "${#sources[@]}" == "0" ]; then
+    sources+=("*")
+  fi
+}
+
+function folders(){
+  local source path name
+  for source in "${sources[@]}"; do
+    for path in $data/$source; do
+      name="$(basename $path)"
+      if [[ -h "$path" ]]; then
+        if [[ -d "$mass/$name" ]]; then
+          folders["$name"]="mass"
+        else
+          folders["$name"]="????"
+        fi
+      elif [[ -d "$path" ]]; then
+        if [[ -e "$mass/$name" ]]; then
+          folders["$name"]="????"
+        else
+          folders["$name"]="data"
+        fi
+      fi
+    done
+  done
+}
+
+function list(){
+  local name type
+  for name in ${!folders[@]}; do
+    type=${folders[$name]}
+    echo "$type" "$name"
+  done
+}
+
+function mass(){
+  local name type
+  echo Before:
+  list
+  for name in ${!folders[@]}; do
+    type=${folders[$name]}
+    if [[ "$type" == "data" ]]; then
+      copy "$data/$name/" "$mass/$name/"
+      sudo rm -fr "$data/$name"
+      sudo ln -s "$mass/$name" "$data/$name"
+      sudo chown -h 1100:66532 "$data/$name"
+    fi
+  done
+  folders
+  echo After:
+  list
+}
+
+function data(){
+  local name type
+  echo Before:
+  list
+  for name in ${!folders[@]}; do
+    type=${folders[$name]}
+    if [[ "$type" == "mass" ]]; then
+      sudo rm -fr "$data/$name"
+      copy "$mass/$name/" "$data/$name/"
+      sudo rm -fr "$mass/$name/"
+    fi
+  done
+  folders
+  echo After:
+  list
+}
+
+function main(){
+  local sources=()
+  local action=list
+  local -A folders
+  params "$@"
+  local data=/mnt/data/mysql
+  local mass=/mnt/mass/mysql
+  folders
+  $action
+}
+
+main "$@"
