@@ -6,3 +6,6 @@ set -euo pipefail
 
 sudo mkdir -p /mnt/mass/phpmyadmin
 sudo chmod 777 /mnt/mass/phpmyadmin
+
+sudo mkdir -p /mnt/mass/mysql
+sudo chmod 777 /mnt/mass/mysql

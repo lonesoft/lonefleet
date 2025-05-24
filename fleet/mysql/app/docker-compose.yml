@@ -2,11 +2,12 @@ services:
 
   db:
     container_name: mariadb
-    image: mariadb:11.7
+    image: mariadb
     restart: always
     volumes:
       - ./mysql/etc/conf.d:/etc/mysql/conf.d:ro
       - /mnt/data/mysql:/var/lib/mysql:Z
+      - /mnt/mass/mysql:/mnt/mass/mysql:Z
     ports:
       - 3306:3306
     environment:
