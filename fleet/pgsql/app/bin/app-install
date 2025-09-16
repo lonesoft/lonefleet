@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. $(dirname "$0")/helpers
+
+create_app_symlink data postgresql 1100 66332
+create_app_symlink mass pgadmin 5151 nogroup

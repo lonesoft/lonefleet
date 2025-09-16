@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd $PROJECT_PATH
+
+main(){
+  local app=$1
+  . dotenv $app
+  alpine post-installation
+  alpine add-volumes
+  alpine add-shared-config
+  alpine install-docker
+
+  alpine app deploy fleet/common/app fleet/$app/app
+  alpine app stop
+  alpine app install
+  alpine app start
+  alpine app status
+}
+
+main "$@"

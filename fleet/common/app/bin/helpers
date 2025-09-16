@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+function create_folder(){
+  local target=$1
+  local user=${2:-$(id -u)}
+  local group=${3:-$(id -g)}
+  sudo mkdir -p $target
+  sudo chown -R $user:$group $target
+#  sudo chmod 777 $target
+}
+
+function create_app_symlink(){
+  local type=$1
+  shift
+#  echo type: $type
+  local target=/mnt/$type/app 
+  local link=~/app/$type
+  create_folder $target
+  sudo ln -sf $target $link
+
+  [[ $# -eq 0 ]] && return
+  local name=$1
+  shift
+#  echo name: $name "$@"
+  local dest=~/app/$type/$name
+  create_folder $dest "$@"
+}
