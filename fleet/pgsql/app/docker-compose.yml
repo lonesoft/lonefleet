@@ -1,0 +1,24 @@
+services:
+
+  db:
+    image: postgres
+    container_name: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: IFwNB48TB9SEt7o7KNS6Ws9ViFugfdCY
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    restart: always
+    ports:
+      - 80:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: lorenzomengon@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: Pg4lonetina!
+    volumes:
+      - ./mass/pgadmin:/var/lib/pgadmin
