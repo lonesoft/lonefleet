@@ -43,15 +43,27 @@ function _add-shared-config() {
 
 function _deploy() {
   trace app $FUNCNAME $1
+  local tmpName tmp path
   if [[ $# -eq 0 ]]; then echo "Error: missing app path"; exit 1; fi
-  local path=$1
-  if [[ ! -d $path ]]; then echo "Error: path $path not found"; exit 1; fi
-  deploy copy $path .
+  tmpName=local/_deploy.tmp
+  tmp=$PROJECT_PATH/$tmpName
+  [[ -d $tmp ]] && rm -fr $tmp
+  mkdir -p $tmp
+  while [[ $# -gt 0 ]]; do
+    path=$1
+    shift
+    if [[ ! -d $path ]]; then echo "Error: path $path not found"; exit 1; fi
+    cp -r $path $tmp
+  done
+  deploy copy $tmpName/app .
+  rm -fr $tmp
+}
+function _install() {
   deploy run "[[ -f app/bin/app-install ]] && app/bin/app-install"
 }
-function _stat() {
+function _status() {
   trace app $FUNCNAME
-  deploy run app/bin/app-stat
+  deploy run app/bin/app-status
 }
 function _start() {
   trace app $FUNCNAME
@@ -66,7 +78,8 @@ function _app() {
   local definitions=()
   definitions+=("bash:$(basename $BASH_SOURCE) app")
   definitions+=("command:deploy")
-  definitions+=("command:stat")
+  definitions+=("command:install")
+  definitions+=("command:status")
   definitions+=("command:start")
   definitions+=("command:stop")
   parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
