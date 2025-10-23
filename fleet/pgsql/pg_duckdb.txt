@@ -1,0 +1,3 @@
+
+https://github.com/duckdb/pg_duckdb/blob/main/docs/compilation.md
+https://stackoverflow.com/questions/31893876/how-to-install-libicu-dev-on-ubuntu

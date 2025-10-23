@@ -13,10 +13,10 @@ main(){
   alpine install-docker
 
   alpine app deploy fleet/common/app fleet/$app/app
-  alpine app stop
-  alpine app install
-  alpine app start
-  alpine app status
+#  alpine app stop
+#  alpine app install
+#  alpine app start
+#  alpine app status
 }
 
 main "$@"

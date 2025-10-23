@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd $PROJECT_PATH
+
+main(){
+  local app=$1
+  shift
+  . dotenv $app
+  alpine app "$@"
+}
+
+main "$@"

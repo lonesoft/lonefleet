@@ -61,6 +61,10 @@ function _deploy() {
 function _install() {
   deploy run "[[ -f app/bin/app-install ]] && app/bin/app-install"
 }
+function _build() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-build
+}
 function _status() {
   trace app $FUNCNAME
   deploy run app/bin/app-status
@@ -68,6 +72,10 @@ function _status() {
 function _start() {
   trace app $FUNCNAME
   deploy run app/bin/app-start
+}
+function _restart() {
+  trace app $FUNCNAME
+  deploy run app/bin/app-restart
 }
 function _stop() {
   trace app $FUNCNAME
@@ -79,8 +87,10 @@ function _app() {
   definitions+=("bash:$(basename $BASH_SOURCE) app")
   definitions+=("command:deploy")
   definitions+=("command:install")
+  definitions+=("command:build")
   definitions+=("command:status")
   definitions+=("command:start")
+  definitions+=("command:restart")
   definitions+=("command:stop")
   parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
 }
