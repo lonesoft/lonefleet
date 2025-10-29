@@ -1,14 +1,97 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+. parse_parameters
 
-cd $PROJECT_PATH
+function confirm(){
+  test $# -eq 0 || echo $1
+#  read -p "Are you sure? " -n 1 -r
+  read -p "Are you sure? " -r
+  echo    # (optional) move to a new line
+  if [[ ! $REPLY =~ ^[Yy]$ ]]
+  then
+      [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+  fi
+}
 
-main(){
+function _machine(){
+  echo " - installing machine"
+  alpine post-installation
+  alpine add-volumes
+  alpine add-shared-config
+  alpine install-docker
+  echo " - machine installed"
+}
+
+function _connect(){
+  ssh $INSTANCE_HOSTNAME
+}
+
+
+function _clear(){
+  confirm "This will remove the application and all data."
+  echo " - removing data"
+  alpine run "sudo rm -fr app"
+  alpine run "sudo rm -fr /mnt/data/*"
+  alpine run "sudo rm -fr /mnt/mass/*"
+  echo " - data removed"
+}
+
+function _deploy(){
+  echo " - deploying application"
+  alpine app deploy fleet/common/app fleet/$app/app  "$@"
+  echo " - application deployed"
+}
+
+function _install(){
+  echo " - installing application"
+  alpine app install
+  echo " - application installed"
+}
+
+function _run(){
+  echo " - starting application"
+  alpine app start "$@"
+  echo " - application started"
+}
+
+function _app(){
+  echo " - manage application"
+  alpine app "$@"
+}
+
+function _full(){
+  echo " - full installing data"
+  _machine
+  _deploy
+  _install
+  _run
+  echo " - full installed"
+  :
+}
+
+function main(){
+  [[ ${PROJECT_PATH:-undefined} == "undefined" ]] && export PROJECT_PATH=$(dirname $(dirname "$0"))
+  cd $PROJECT_PATH
   local app=$1
   shift
   . dotenv $app
-  alpine app "$@"
+
+  local definitions=()
+  definitions+=("bash:$(basename $BASH_SOURCE)")
+
+  definitions+=("command:machine:install machine")
+  definitions+=("command:clear:remove application and all data")
+  definitions+=("command:deploy:deploy application")
+  definitions+=("command:install:install application")
+  definitions+=("command:run:run application")
+  definitions+=("command:app:manage application")
+  definitions+=("command:connect:connect to machine")
+
+  definitions+=("command:full:install machine, deploy, install and run application")
+
+  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
+
 }
 
 main "$@"

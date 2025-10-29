@@ -4,5 +4,4 @@ set -euo pipefail
 
 . $(dirname "$0")/helpers
 
-create_app_symlink data
-create_app_symlink mass
+create_volumes

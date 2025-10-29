@@ -55,12 +55,18 @@ function _deploy() {
     if [[ ! -d $path ]]; then echo "Error: path $path not found"; exit 1; fi
     cp -r $path $tmp
   done
-  deploy copy $tmpName/app .
+  deploy copy $tmpName/app . --exclude 'volumes' | egrep -v "^\."
   rm -fr $tmp
 }
+
+function _run() {
+  deploy run "$@"
+}
+
 function _install() {
   deploy run "[[ -f app/bin/app-install ]] && app/bin/app-install"
 }
+
 function _build() {
   trace app $FUNCNAME
   deploy run app/bin/app-build
@@ -107,6 +113,7 @@ function main(){
   definitions+=("command:add-shared-config:install docker")
   definitions+=("command:install-docker:install docker")
   definitions+=("command:app:manage application")
+  definitions+=("command:run:run command on machine")
 #  definitions+=("command:deploy-app:deploy application")
 
   parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
