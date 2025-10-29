@@ -12,16 +12,21 @@ function create_folder(){
 function create_app_symlink(){
   local type=$1
   shift
-#  echo type: $type
-  local target=/mnt/$type/app 
-  local link=~/app/$type
+  local target=/mnt/$type/app
   create_folder $target
+  local link=volumes/$type
   sudo ln -sf $target $link
 
   [[ $# -eq 0 ]] && return
   local name=$1
   shift
-#  echo name: $name "$@"
-  local dest=~/app/$type/$name
+  local dest=link/$name
   create_folder $dest "$@"
+}
+
+function create_volumes(){
+  local volumes=~/app/volumes
+  create_folder $volumes
+  create_app_symlink data
+  create_app_symlink mass
 }

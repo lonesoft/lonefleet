@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. parse_parameters
+
+function list(){
+  mariadb \
+    --defaults-extra-file=~/app/etc/remote-database.cfg \
+    --execute "SHOW DATABASES"
+  exit
+}
+
+
+function dump(){
+  local ignore_tables=""
+  local ignore_data=""
+#  ignore_tables="--ignore-table=$database.supplier_balance"
+#  ignore_data="--ignore-table-data=$database.cache_bootstrap"
+  mysqldump \
+    --defaults-extra-file=~/app/etc/remote-database.cfg \
+    --compress \
+    --skip-lock-tables \
+    --skip-comments \
+    --order-by-primary \
+    --single-transaction \
+    --no-autocommit \
+    --extended-insert \
+    $ignore_tables \
+    $ignore_data \
+    --verbose \
+    --databases $database > $dumps/$database.sql
+}
+
+function restore(){
+  mariadb \
+    --defaults-extra-file=~/app/etc/local-database.cfg < $dumps/$database.sql
+}
+
+
+function _copy(){
+  [ $# -eq 0 ] && list
+  local database=$1
+  local dumps=~/app/volumes/mass/dumps
+  sudo mkdir -p $dumps
+  sudo chown lorenzo $dumps
+  dump
+  restore
+}
+
+function main(){
+  local definitions=()
+  definitions+=("bash:$(basename $BASH_SOURCE)")
+  definitions+=("parameter:database::database name")
+  definitions+=("command:copy:copy database locally")
+
+  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
+
+}
+
+main "$@"

@@ -6,8 +6,8 @@ services:
     restart: always
     volumes:
       - ./mysql/etc/conf.d:/etc/mysql/conf.d:ro
-      - /mnt/data/mysql:/var/lib/mysql:Z
-      - /mnt/mass/mysql:/mnt/mass/mysql:Z
+      - ./volumes/data/mysql:/var/lib/mysql:Z
+      - ./volumes/mass/mysql:/mnt/mass/mysql:Z
     ports:
       - 3306:3306
     environment:
@@ -23,7 +23,7 @@ services:
     volumes:
       - config_mysql:/etc/phpmyadmin/config_mysql:ro
       - ./phpmyadmin/etc/conf.d:/etc/phpmyadmin/conf.d:ro
-      - /mnt/mass/phpmyadmin:/var/www/mass:Z
+      - ./volumes/mass/phpmyadmin:/var/www/mass:Z
     ports:
       - 80:80
     depends_on:

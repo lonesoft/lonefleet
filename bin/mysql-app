@@ -2,4 +2,4 @@
 
 set -euo pipefail
 
-app-deploy pgsql
+app mysql "$@"

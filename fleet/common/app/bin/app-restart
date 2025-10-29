@@ -8,3 +8,6 @@ if [[ ! -z $(docker ps -a -q) ]]; then
   docker stop $(docker ps -a -q)
   docker rm $(docker ps -a -q)
 fi
+
+docker compose up --detach
+#docker system prune --all --force

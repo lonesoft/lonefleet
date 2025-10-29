@@ -1,0 +1,330 @@
+#!/usr/bin/env bash
+
+#
+# usage:
+#   parse_parameters [arguments] [extra arguments] [--help] [--parse-parameters-dump] [--parse-parameters-debug]
+#     arguments:
+#       bash:name                       : name of the calling bash, i.e. "bash:$(basename $0)"
+#       callback:function               : the internal function to call (or default if not command present)  (see Note 1)
+#       initialize:function             : the internal function to call before the callback/command (see Note 2)
+#       terminate:function              : the internal function to call after the callback/command
+#       parameter:name[:default][:help] : positional parameter (see Note 3)
+#       command:name[:help]             : other internal functions that can be accepted by argument (see Note 3)
+#       option:name[:default][:help]    : such in --name <value>
+#       flag:name[:default][:help]      : such in --name and --no-name
+#
+# Note 1:
+#   the callback functions needs to be prefixed with _
+#
+# Note 2:
+#   initialize function should end with "$@" so, in turn will call the callback
+#
+# Note 3:
+#   if parameter is defined before command, we assume that after matching a command, we do not expect more parameters
+#   this is useful in case we want to use default parameter but add extra parameters to be used in the internal function
+#
+# Example with the use of array to help
+#  local definitions=()
+#  definitions+=("bash:$(basename "$0")")
+#  definitions+=("initialize:initialize")
+##  definitions+=("parameter:env:${APP_ENV:dev}:.env file")
+#  definitions+=("command:uninstall:uninstall extension")
+#  definitions+=("command:install:(un)install extension")
+#  definitions+=("command:database:import PO data")
+#  definitions+=("command:test:run tests")
+#  definitions+=("command:phpunit:run phpunit")
+#  definitions+=("command:curl")
+#  definitions+=("command:env")
+#  definitions+=("command:update:update modules")
+#  parse_parameters "${definitions[@]}" "$@" #--parse-parameters-dump #--parse-parameters-debug
+
+
+function parse_parameters()(
+
+  function extract(){
+    local param index default parts
+    param="$1"
+    index=$2
+    default="${3:-}"
+    IFS=':' read -ra parts <<< "$param"
+    echo "${parts[$index]:-$default}"
+  }
+
+  function read_definition(){
+    local param name default
+    args=()
+    for param in "$@"; do
+      case $param in
+        bash:*)
+          bash=$(extract "$param" 1)
+          ;;
+        callback:*)
+          callback=$(extract "$param" 1)
+          ;;
+        initialize:*)
+          initialize=$(extract "$param" 1)
+          ;;
+        terminate:*)
+          terminate=$(extract "$param" 1)
+          ;;
+        command:*)
+          name=$(extract "$param" 1)
+          types[$name]=command
+          commands["$name"]=true
+          helps["$name"]=$(extract "$param" 2)
+          [[ -z ${first_parameter:-} ]] && first_parameter=command
+          ;;
+        parameter:*)
+          name=$(extract "$param" 1)
+          types[$name]=parameter
+          default=$(extract "$param" 2)
+          parameters+=("$name")
+          defaults["$name"]=$default
+          values["$name"]="$default"
+          helps["$name"]=$(extract "$param" 3)
+          [[ -z ${first_parameter:-} ]] && first_parameter=parameter
+          ;;
+        option:*)
+          name=$(extract "$param" 1)
+          types[$name]=option
+          options[$name]=option
+          default=$(extract "$param" 2)
+          defaults["$name"]=$default
+          values["$name"]="$default"
+          helps["$name"]=$(extract "$param" 3)
+          ;;
+        flag:*)
+          name=$(extract "$param" 1)
+          types[$name]=flag
+          options[$name]=flag
+          default=$(extract "$param" 2 false)
+          defaults["$name"]=$default
+          values["$name"]="$default"
+          helps["$name"]=$(extract "$param" 3)
+          ;;
+        --help)
+          help=true
+          ;;
+        --parse-parameters-dump)
+          dump=true
+          ;;
+        --parse-parameters-debug)
+          debug=true
+          ;;
+        *)
+          args+=("$param")
+          ;;
+      esac
+    done
+  }
+
+  function read_values(){
+    local found name type value
+    local skip_parameter=false
+    args=()
+    while [[ $# -gt 0 ]]; do
+      found=false
+      for name in "${!types[@]}"; do
+        type="${types[$name]}"
+        if [[ $1 == "--${name}" ]]; then
+          if [[ "$type" == "option" ]]; then
+            value="$2"
+            values["$name"]="$value"
+            shift
+          elif [[ "$type" == "flag" ]]; then
+            values["$name"]=true
+          fi
+          found=true
+        elif [[ $1 == "--no-${name}" ]]; then
+          if [[ "$type" == "flag" ]]; then
+            values["$name"]=false
+            found=true
+          fi
+        fi
+      done
+      if [[ $found == false ]]; then
+        value="$1"
+        # check if is a command
+        if [[ "${commands["$value"]:-false}" == true  ]]; then
+          callback="$value"
+          [[ $first_parameter == parameter ]] && skip_parameter=true
+         # check if a parameter
+        elif [[ ${#parameters[@]} -gt 0 ]] && [[ ${value:0:1} != '-' ]] && [[ $skip_parameter != true ]]; then
+          name=${parameters[0]}
+          parameters=("${parameters[@]:1}")
+          values["$name"]="$value"
+        else
+          args+=("$value")
+        fi
+      fi
+      shift
+    done
+  }
+
+  function debug(){
+    echo "+-------- debug --------+"
+    echo "| parameters            : "$@""
+    echo "| ..................... :"
+    echo "| first_parameter       : $first_parameter"
+    echo "| commands              : ${!commands[@]}"
+    echo "| parameters            : ${parameters[@]}"
+    echo "| names                 : ${!types[@]}"
+    echo "| types                 : ${types[@]}"
+    echo "| defaults              : ${defaults[@]}"
+    echo "| args before parsing   : "${args[@]}""
+    echo "| ..................... :"
+    read_values "${args[@]}"
+    echo "| callback              : $callback"
+    echo "| names                 : "${!values[@]}""
+    echo "| values                : "${values[@]}""
+    echo "| args after parsing    : "${args[@]}""
+  }
+
+  function help(){
+    local command name type value default
+
+    echo -n "Usage: ${bash:-<bash script>}"
+    echo -n " ${parameters[@]}"
+    echo " COMMAND [OPTIONS]"
+    if [[ "$(type -t _help)" == function ]]; then
+      echo
+      _help
+    fi
+
+    if [[ ${#commands[@]} -gt 0 ]]; then
+      echo
+      echo "Commands:"
+      for command in "${!commands[@]}"; do
+        printf "  %-12s %s\n" "$command" "${helps[$command]}"
+      done
+    fi
+
+    if [[ ${#parameters[@]} -gt 0 ]]; then
+      echo
+      echo "Parameters:"
+      for name in "${parameters[@]}"; do
+        printf "  %-12s %s" "$name" "${helps[$name]}"
+        if [[ -z "${defaults[$name]}" ]]; then
+          printf "\n"
+        else
+          printf " (default %s)\n" "${defaults[$name]}"
+        fi
+      done
+    fi
+
+    if [[ ${#options[@]} -gt 0 ]]; then
+      echo
+      echo "Options:"
+      for name in "${!options[@]}"; do
+        type=${options[$name]}
+            default=
+        if [[ $type == option ]]; then
+          value="$name value"
+          if [[ ! -z ${defaults[$name]} ]]; then
+            default="(default ${defaults[$name]})"
+          fi
+        elif [[ $type == flag ]]; then
+          value="$name"
+          if [[ ${defaults[$name]} == true ]]; then
+            default="(default)"
+          fi
+        fi
+        printf "  --%-16s %s %s\n" "$value" "${helps[$name]}" "$default"
+      done
+    fi
+  }
+
+  function main(){
+    local debug=false
+    local dump=false
+    local help=false
+    local bash callback initialize terminate
+    local args=()
+    local -A types=()
+    local -A commands=()
+    local parameters=()
+    local -A options=()
+    local -A defaults=()
+    local -A values=()
+    local -A helps
+    local name value
+    local result=""
+    local first_parameter
+
+    read_definition "$@"
+
+    if [[ $help == true ]]; then
+      help
+      __parse__parameters__callback__=":"
+      return
+    fi
+
+    if [[ $debug == true ]]; then
+      debug "$@"
+    else
+      read_values "${args[@]}"
+    fi
+
+    if [[ -z ${callback:-} ]]; then
+      help
+      __parse__parameters__callback__=":"
+      return 1
+    elif [[ "$(type -t _$callback)" != function ]]; then
+      help
+      __parse__parameters__callback__=":"
+      return 2
+    fi
+
+    for name in "${!values[@]}"; do
+      result="$result local $name=\""${values[$name]}\"";"
+    done
+
+    if [[ ! -z ${initialize:-} ]] &&  [[ "$(type -t _$initialize)" == function ]]; then
+      result="$result _$initialize _$callback"
+    else
+      result="$result _$callback"
+    fi
+    for value in "${args[@]}"; do
+      result="$result \""${value}\"""
+    done
+    result="$result;"
+
+    if [[ ! -z ${terminate:-} ]] &&  [[ "$(type -t _$terminate)" == function ]]; then
+      result="$result _$terminate "${args[@]}";"
+      for value in "${args[@]}"; do
+        result="$result \""${value}\"""
+      done
+      result="$result;"
+    fi
+
+    if [[ "$dump" == true ]]; then
+      echo "+-----------------------+"
+      for name in "${!values[@]}"; do
+        value="${values["$name"]}"
+        printf "| %-22s: %s\n" "$name" "$value"
+      done
+    fi
+    __parse__parameters__callback__="$result"
+  }
+#  function x(){
+#    local __parse__parameters__callback__ rc
+#    main "$@"
+#    rc=$?
+#    if [[ rc -eq 0 ]]; then
+#     echo $__parse__parameters__callback__
+#    else
+#      echo "return $rc"
+#    fi
+#  }
+#  eval $(x "$@")
+  local __parse__parameters__callback__
+  main "$@" && eval "$__parse__parameters__callback__" || return $?
+  unset __parse__parameters__callback__
+)
+
+if [[ "$BASH_SOURCE" == "$0" ]]; then
+  $(basename $BASH_SOURCE) "$@"
+  exit $?
+else
+  export -f $(basename $BASH_SOURCE)
+fi
